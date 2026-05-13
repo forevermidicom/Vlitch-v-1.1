@@ -1,0 +1,1177 @@
+<!--
+Programming by Rudy Paganini / forevermidi.com - released under the Attribution-NonCommercial-ShareAlike 4.0 International License: https://creativecommons.org/licenses/by-nc-sa/4.0/.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vlitch v 1.1 - forevermidi.com</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Syncopate:wght@700&display=swap');
+:root {
+    --fluo:#39ff14;
+    --bg:#000;
+    --panel-bg:rgba(10,10,15,0.45);
+    --font-display:'Syncopate',sans-serif;
+    --font-mono:'Space Grotesk',sans-serif;
+}
+body {
+    margin:0; overflow:hidden; background:var(--bg); color:var(--fluo);
+    font-family:var(--font-mono);
+    display:flex; justify-content:center; align-items:center; height:100vh;
+    user-select: none;
+}
+#v-frame {
+    position:relative;
+    background:#000;
+    border:2px solid var(--fluo);
+    box-shadow:0 0 90px rgba(57,255,20,0.35);
+    overflow:hidden;
+}
+canvas {
+    width:100%; height:100%; display:block; image-rendering:pixelated;
+}
+.panel {
+    position:absolute; top:0; right:0;
+    background:var(--panel-bg);
+    backdrop-filter:blur(30px);
+    border-left:2px solid var(--fluo);
+    width:420px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    z-index:100;
+    overflow:hidden;
+}
+.panel-top {
+    position: sticky;
+    top: 0;
+    background: var(--panel-bg);
+    backdrop-filter: blur(30px);
+    z-index: 101;
+    padding: 22px;
+    border-bottom: 1px solid rgba(57,255,20,0.2);
+}
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 22px 22px 22px;
+}
+.panel-content::-webkit-scrollbar { width:6px; }
+.panel-content::-webkit-scrollbar-thumb { background:var(--fluo); }
+.header-top { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:14px; }
+.nav-link {
+    padding:2px 8px; border:1px solid var(--fluo); text-decoration:none;
+    color:#000; background:var(--fluo); font-family:var(--font-display);
+    font-size:7px; letter-spacing:1.5px;
+}
+.panel-header { font-family:var(--font-display); font-size:28px; letter-spacing:6px; }
+.section-h {
+    font-family:var(--font-display); font-size:9.5px; letter-spacing:2.5px;
+    border-top:1px dashed rgba(57,255,20,0.45); padding-top:9px; margin-top:14px; opacity:0.8;
+}
+.control-group { display:flex; flex-direction:column; gap:7px; margin-bottom:6px; }
+.label-row {
+    display:flex; justify-content:space-between;
+    font-size:7.5px; font-weight:900; text-transform:uppercase; letter-spacing:1.6px;
+}
+input[type=range] {
+    -webkit-appearance:none; width:100%; background:transparent;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    height:3.5px; background:#39ff14; border:1px solid rgba(57,255,20,0.7);
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; height:19px; width:19px; background:var(--fluo);
+    cursor:ew-resize; margin-top:-8px; box-shadow:0 0 14px var(--fluo);
+    border:2px solid #000; border-radius:50%;
+}
+.btn-row { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+button {
+    background:transparent; color:var(--fluo); border:1px solid var(--fluo);
+    padding:8px 12px; cursor:pointer; font-family:var(--font-display);
+    font-size:8px; text-transform:uppercase; transition:0.1s;
+}
+button:hover { background:var(--fluo); color:#000; }
+#rec-trigger.rec-active {
+    background:var(--fluo); color:#000; animation:rec-blink 0.4s infinite alternate;
+}
+@keyframes rec-blink { from { opacity:1; } to { opacity:0.4; } }
+#hide-panel-btn {
+    position:absolute; top:14px; right:440px;
+    background:transparent; color:var(--fluo); border:1px solid var(--fluo);
+    padding:6px 12px; cursor:pointer; font-family:var(--font-display);
+    font-size:8px; z-index:200; text-transform:uppercase;
+}
+.deck {
+    border:1px solid rgba(57,255,20,0.3);
+    padding:12px;
+    margin-bottom:14px;
+    background:rgba(0,0,0,0.25);
+}
+.small-btn { padding:7px 10px; font-size:8px; }
+.random-active {
+    background:var(--fluo) !important;
+    color:#000 !important;
+    animation:random-pulse 1.2s infinite;
+}
+@keyframes random-pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+.load-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-bottom: 12px;
+}
+.panel.hidden { display: none; }
+
+.transport-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+.transport-row {
+    display: grid;
+    grid-template-columns: 38px 1fr 36px;
+    align-items: center;
+    gap: 9px;
+    font-size: 7.8px;
+}
+.transport-label {
+    font-size: 7.5px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    white-space: nowrap;
+}
+.value-display {
+    font-size: 7px;
+    min-width: 32px;
+    text-align: right;
+}
+.speed-container {
+    position: relative;
+}
+.speed-container::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    bottom: -8px;
+    width: 2px;
+    background: rgba(57,255,20,0.9);
+    pointer-events: none;
+    z-index: 1;
+}
+</style>
+</head>
+<body>
+<div id="v-frame">
+    <canvas id="v-canvas"></canvas>
+    <button id="hide-panel-btn">HIDE</button>
+  
+    <div class="panel" id="ui-panel">
+        <div class="panel-top">
+            <div class="header-top">
+                <div class="panel-header">Vlitch</div>
+                <a href="https://forevermidi.com" target="_blank" class="nav-link">FOREVERMIDI.COM →</a>
+            </div>
+           
+            <div class="deck">
+                <div class="load-row">
+                    <button id="load-a" class="small-btn">LOAD VIDEO</button>
+                    <button id="start-camera" class="small-btn">CAMERA</button>
+                </div>
+                <div class="btn-row">
+                    <button id="play-a" class="small-btn">⏸</button>
+                    <button id="mute-a" class="small-btn">MUTE</button>
+                </div>
+
+                <div class="transport-rows">
+                    <div class="transport-row">
+                        <span class="transport-label">VOL</span>
+                        <input type="range" id="volume-slider" min="0" max="1" value="1" step="0.01">
+                        <span id="vol-value" class="value-display">1.00</span>
+                    </div>
+                    <div class="transport-row">
+                        <span class="transport-label">SPEED</span>
+                        <div class="speed-container">
+                            <input type="range" id="speed-slider" min="0" max="2" value="1" step="0.01" style="width:100%;">
+                        </div>
+                        <span id="speed-value" class="value-display">1.00</span>
+                    </div>
+                </div>
+               
+                <div class="control-group" style="margin-top:12px;">
+                    <input type="range" id="scrub-a" min="0" max="100" value="0" step="0.001">
+                </div>
+            </div>
+           
+            <div class="btn-row">
+                <button id="snapshot">PNG</button>
+                <button id="rec-trigger">MP4</button>
+            </div>
+            <div class="btn-row">
+                <button id="reset-fx">RESET</button>
+                <button id="randomizer">RANDOMIZER</button>
+            </div>
+        </div>
+       
+        <div class="panel-content">
+            <div class="section-h">DATA CORRUPTION</div>
+            <div class="control-group"><div class="label-row">P-FRAME MOSH <span id="l-mosh">0</span></div><input type="range" class="fx" id="mosh" min="0" max="255" value="0"></div>
+            <div class="control-group"><div class="label-row">VECTOR DRIFT <span id="l-drift">0</span></div><input type="range" class="fx" id="drift" min="0" max="140" value="0"></div>
+            <div class="control-group"><div class="label-row">MACROBLOCK SHIFT <span id="l-mb">0</span></div><input type="range" class="fx" id="mb" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">DCT QUANT <span id="l-dct">0</span></div><input type="range" class="fx" id="dct" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">ROW PREDICTOR <span id="l-pred">0</span></div><input type="range" class="fx" id="pred" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">SLICE LOSS <span id="l-slice">0</span></div><input type="range" class="fx" id="slice" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">JPEG BLOCK <span id="l-jpg">0</span></div><input type="range" class="fx" id="jpg" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">HEX NOISE <span id="l-hex">0</span></div><input type="range" class="fx" id="hex" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">CHANNEL DROP <span id="l-chand">0</span></div><input type="range" class="fx" id="chand" min="0" max="100" value="0"></div>
+
+            <div class="section-h">SIGNAL ARTIFACTS</div>
+            <div class="control-group"><div class="label-row">SIGNAL TEARING <span id="l-tear">0</span></div><input type="range" class="fx" id="tear" min="0" max="180" value="0"></div>
+            <div class="control-group"><div class="label-row">RGB PHASE SLIP <span id="l-rgb">0</span></div><input type="range" class="fx" id="rgb" min="0" max="260" value="0"></div>
+            <div class="control-group"><div class="label-row">DATA SMEAR <span id="l-smear">0</span></div><input type="range" class="fx" id="smear" min="0" max="480" value="0"></div>
+            <div class="control-group"><div class="label-row">CHROMA BLEED <span id="l-chroma">0</span></div><input type="range" class="fx" id="chroma" min="0" max="110" value="0"></div>
+            <div class="control-group"><div class="label-row">YUV DESYNC <span id="l-yuv">0</span></div><input type="range" class="fx" id="yuv" min="0" max="100" value="0"></div>
+
+            <div class="section-h">DISPLACEMENT</div>
+            <div class="control-group"><div class="label-row">VERTICAL TEAR <span id="l-block">0</span></div><input type="range" class="fx" id="block" min="0" max="220" value="0"></div>
+            <div class="control-group"><div class="label-row">HORIZONTAL STUTTER <span id="l-recur">0</span></div><input type="range" class="fx" id="recur" min="0" max="110" value="0"></div>
+            <div class="control-group"><div class="label-row">SLICE DUPE <span id="l-dupe">0</span></div><input type="range" class="fx" id="dupe" min="0" max="100" value="0"></div>
+
+            <div class="section-h">BUFFER CORRUPTION</div>
+            <div class="control-group"><div class="label-row">ARITHMETIC RIGHT SHIFT <span id="l-bitshift">0</span></div><input type="range" class="fx" id="bitshift" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">ENDIAN SWAP <span id="l-byteswap">0</span></div><input type="range" class="fx" id="byteswap" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">XOR CIPHER MASK <span id="l-xor">0</span></div><input type="range" class="fx" id="xor" min="0" max="255" value="0"></div>
+            <div class="control-group"><div class="label-row">UINT8 OVERFLOW WRAP <span id="l-overflow">0</span></div><input type="range" class="fx" id="overflow" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">FSEEK MISALIGN <span id="l-seek">0</span></div><input type="range" class="fx" id="seek" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">COLORMAP INDEX REMAP <span id="l-palette">0</span></div><input type="range" class="fx" id="palette" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">DOUBLE BUFFER DESYNC <span id="l-echo">0</span></div><input type="range" class="fx" id="echo" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">DEINTERLACE FIELD ERROR <span id="l-interlace">0</span></div><input type="range" class="fx" id="interlace" min="0" max="100" value="0"></div>
+            <!-- NEW real buffer-level corruptions -->
+            <div class="control-group"><div class="label-row">MEMCPY STRIDE FAULT <span id="l-stride">0</span></div><input type="range" class="fx" id="stride" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">SCANLINE PITCH CORRUPT <span id="l-pitch">0</span></div><input type="range" class="fx" id="pitch" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">NULL POINTER DEREFERENCE <span id="l-nullptr">0</span></div><input type="range" class="fx" id="nullptr" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">HEAP SPRAY OVERWRITE <span id="l-heap">0</span></div><input type="range" class="fx" id="heap" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">USE-AFTER-FREE READ <span id="l-uaf">0</span></div><input type="range" class="fx" id="uaf" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">BLIT RECT UNDERRUN <span id="l-blit">0</span></div><input type="range" class="fx" id="blit" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">ALPHA PREMULT ERROR <span id="l-premult">0</span></div><input type="range" class="fx" id="premult" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">MMAP REMAP GLITCH <span id="l-mmap">0</span></div><input type="range" class="fx" id="mmap" min="0" max="100" value="0"></div>
+
+            <div class="section-h">AUDIO ARTIFACTS</div>
+            <div class="control-group"><div class="label-row">BIT CRUSHER <span id="l-audio">0</span></div><input type="range" class="fx" id="audio" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">WAVE FOLD <span id="l-wavefold">0</span></div><input type="range" class="fx" id="wavefold" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">RING MOD <span id="l-ringmod">0</span></div><input type="range" class="fx" id="ringmod" min="0" max="100" value="0"></div>
+            <div class="control-group"><div class="label-row">SAMPLE STUTTER <span id="l-stutter">0</span></div><input type="range" class="fx" id="stutter" min="0" max="100" value="0"></div>
+        </div>
+    </div>
+</div>
+<input type="file" id="file-a" accept="video/*" style="display:none;">
+<script>
+const canvas = document.getElementById('v-canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const vidA = document.createElement('video');
+vidA.loop = true;
+vidA.playsInline = true;
+let currentW = 1280, currentH = 720;
+canvas.width = currentW;
+canvas.height = currentH;
+let pFrame = null, moshBuf = null, chR_old = null, chB_old = null;
+let echoBuf = null;
+let uafBuf = null; // use-after-free stale buffer
+let isRec = false, recorder, chunks = [];
+let audioCtx, source, bitCrusherNode, streamDest;
+let waveFoldNode = null, ringModNode = null, stutterNode = null;
+let keepRandomOn = false;
+let randomInterval = null;
+let mediaStream = null;
+let hasA = false;
+let currentSpeed = 1.0;
+const p = {
+    mosh:0, drift:0, mb:0, dct:0, pred:0, slice:0, jpg:0,
+    hex:0, chand:0,
+    tear:0, rgb:0, smear:0, chroma:0, yuv:0,
+    block:0, recur:0, dupe:0,
+    bitshift:0, byteswap:0, xor:0, overflow:0, seek:0, palette:0, echo:0, interlace:0,
+    stride:0, pitch:0, nullptr:0, heap:0, uaf:0, blit:0, premult:0, mmap:0,
+    audio:0, wavefold:0, ringmod:0, stutter:0
+};
+
+function adaptFrameToVideo(vid) {
+    if (!vid.videoWidth || !vid.videoHeight) return;
+    currentW = 1280;
+    currentH = Math.round(1280 * (vid.videoHeight / vid.videoWidth));
+    if (currentH > 800) {
+        currentH = 800;
+        currentW = Math.round(800 * (vid.videoWidth / vid.videoHeight));
+    }
+    document.getElementById('v-frame').style.width = currentW + 'px';
+    document.getElementById('v-frame').style.height = currentH + 'px';
+    canvas.width = currentW;
+    canvas.height = currentH;
+}
+function drawVideo() {
+    if (hasA && vidA.readyState >= 2) {
+        ctx.drawImage(vidA, 0, 0, canvas.width, canvas.height);
+    }
+}
+document.getElementById('load-a').onclick = () => document.getElementById('file-a').click();
+document.getElementById('file-a').onchange = e => {
+    const f = e.target.files[0];
+    if(!f) return;
+    stopMediaStream();
+    vidA.srcObject = null;
+    vidA.src = URL.createObjectURL(f);
+    vidA.onloadedmetadata = () => {
+        adaptFrameToVideo(vidA);
+        hasA = true;
+        vidA.play().catch(() => {});
+    };
+};
+document.getElementById('start-camera').onclick = async () => {
+    try {
+        stopMediaStream();
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        vidA.srcObject = mediaStream;
+        vidA.onloadedmetadata = () => {
+            adaptFrameToVideo(vidA);
+            hasA = true;
+            vidA.play().catch(() => {});
+        };
+    } catch(err) {
+        alert("Camera + Mic access failed.");
+    }
+};
+function stopMediaStream() {
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+    }
+    vidA.srcObject = null;
+    vidA.src = "";
+}
+const hideBtn = document.getElementById('hide-panel-btn');
+const panel = document.getElementById('ui-panel');
+hideBtn.onclick = () => {
+    panel.classList.toggle('hidden');
+    hideBtn.innerText = panel.classList.contains('hidden') ? 'SHOW' : 'HIDE';
+    hideBtn.style.right = panel.classList.contains('hidden') ? '15px' : '440px';
+};
+document.getElementById('play-a').onclick = () => {
+    if (vidA.paused) {
+        vidA.play();
+        document.getElementById('play-a').innerText = '⏸';
+    } else {
+        vidA.pause();
+        document.getElementById('play-a').innerText = '▶';
+    }
+};
+document.getElementById('mute-a').onclick = () => {
+    vidA.muted = !vidA.muted;
+    document.getElementById('mute-a').innerText = vidA.muted ? '♪' : 'MUTE';
+};
+const volumeSlider = document.getElementById('volume-slider');
+const volValue = document.getElementById('vol-value');
+volumeSlider.oninput = () => {
+    vidA.volume = parseFloat(volumeSlider.value);
+    volValue.innerText = vidA.volume.toFixed(2);
+};
+const speedSlider = document.getElementById('speed-slider');
+const speedValue = document.getElementById('speed-value');
+speedSlider.oninput = () => {
+    currentSpeed = parseFloat(speedSlider.value);
+    vidA.playbackRate = currentSpeed;
+    speedValue.innerText = currentSpeed.toFixed(2);
+};
+const scrubA = document.getElementById('scrub-a');
+scrubA.oninput = () => {
+    if (vidA.duration) vidA.currentTime = (parseFloat(scrubA.value) / 100) * vidA.duration;
+};
+vidA.ontimeupdate = () => {
+    if (vidA.duration) {
+        scrubA.value = (vidA.currentTime / vidA.duration) * 100;
+    }
+};
+document.getElementById('reset-fx').onclick = () => {
+    document.querySelectorAll('.fx').forEach(s => {
+        s.value = 0;
+        p[s.id] = 0;
+        updateLabel(s);
+    });
+    speedSlider.value = 1;
+    currentSpeed = 1.0;
+    vidA.playbackRate = 1;
+    speedValue.innerText = "1.00";
+    pFrame = moshBuf = chR_old = chB_old = echoBuf = uafBuf = null;
+    updateAudio();
+    if (keepRandomOn) document.getElementById('randomizer').click();
+};
+document.getElementById('randomizer').onclick = () => {
+    keepRandomOn = !keepRandomOn;
+    const btn = document.getElementById('randomizer');
+    if (keepRandomOn) {
+        btn.classList.add('random-active');
+        randomInterval = setInterval(randomizeParams, 350);
+    } else {
+        btn.classList.remove('random-active');
+        clearInterval(randomInterval);
+    }
+};
+function randomizeParams() {
+    document.querySelectorAll('.fx').forEach(s => {
+        if (Math.random() > 0.25) {
+            let v = Math.floor(Math.random() * parseFloat(s.max) * 0.75);
+            s.value = v;
+            s.dispatchEvent(new Event('input'));
+        }
+    });
+    if (Math.random() > 0.35) {
+        speedSlider.value = (0.5 + Math.random() * 1.5).toFixed(2);
+        speedSlider.dispatchEvent(new Event('input'));
+    }
+}
+
+// ─── PNG 2x SNAPSHOT ─────────────────────────────────────────────────────────
+document.getElementById('snapshot').onclick = () => {
+    // Render at 2x resolution into an offscreen canvas
+    const scale = 2;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width  = canvas.width  * scale;
+    offCanvas.height = canvas.height * scale;
+    const offCtx = offCanvas.getContext('2d');
+    offCtx.imageSmoothingEnabled = false;
+    offCtx.drawImage(canvas, 0, 0, offCanvas.width, offCanvas.height);
+    const a = document.createElement('a');
+    a.download = `VLITCH_${Date.now()}_2x.png`;
+    a.href = offCanvas.toDataURL('image/png', 1.0);
+    a.click();
+};
+
+// ─── MP4 RECORDING (H.264 preferred, VP9 fallback) ───────────────────────────
+const recBtn = document.getElementById('rec-trigger');
+
+function getBestMimeType() {
+    // Priority: H.264 MP4 → H.265 MP4 → VP9 WebM → VP8 WebM
+    const candidates = [
+        'video/mp4;codecs=avc1.42E01E,mp4a.40.2', // H.264 Baseline + AAC
+        'video/mp4;codecs=avc1.4D401F,mp4a.40.2', // H.264 Main
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+    ];
+    for (const m of candidates) {
+        if (MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return '';
+}
+
+function getExtension(mimeType) {
+    if (mimeType.startsWith('video/mp4')) return 'mp4';
+    return 'webm';
+}
+
+recBtn.onclick = () => {
+    if (!isRec) {
+        chunks = [];
+        const stream = canvas.captureStream(60);
+        if (streamDest && streamDest.stream.getAudioTracks().length) {
+            stream.addTrack(streamDest.stream.getAudioTracks()[0]);
+        }
+        const mimeType = getBestMimeType();
+        const ext = getExtension(mimeType);
+        const options = {
+            videoBitsPerSecond: 25000000, // 25 Mbps — HD quality
+        };
+        if (mimeType) options.mimeType = mimeType;
+
+        try {
+            recorder = new MediaRecorder(stream, options);
+        } catch(e) {
+            // Fallback with no options
+            recorder = new MediaRecorder(stream);
+        }
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+            const type = recorder.mimeType || 'video/webm';
+            const finalExt = type.startsWith('video/mp4') ? 'mp4' : 'webm';
+            const blob = new Blob(chunks, { type });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `VLITCH_${Date.now()}.${finalExt}`;
+            a.click();
+        };
+        recorder.start(100);
+        isRec = true;
+        recBtn.innerText = "● REC";
+        recBtn.classList.add('rec-active');
+    } else {
+        recorder.stop();
+        isRec = false;
+        recBtn.innerText = "MP4";
+        recBtn.classList.remove('rec-active');
+    }
+};
+
+// ─── AUDIO ENGINE ────────────────────────────────────────────────────────────
+function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioCtx.createMediaElementSource(vidA);
+
+    // Bit crusher + Wave fold (progressive: only active in top half of slider)
+    bitCrusherNode = audioCtx.createScriptProcessor(4096, 2, 2);
+    bitCrusherNode.onaudioprocess = function(e) {
+        // Bit crush: slider 0–49 = no effect, 50–100 = full range 16→1 bits
+        const crushT = Math.max(0, (p.audio - 50) / 50); // 0 at slider 50, 1 at slider 100
+        const bits = p.audio >= 50 ? Math.max(1, Math.round(16 - crushT * 15)) : 16;
+        const step = Math.pow(0.5, bits - 1);
+
+        // Wave fold: slider 0–49 = no effect, 50–100 = full fold
+        const foldT = Math.max(0, (p.wavefold - 50) / 50); // 0..1 starting at slider 50
+        const foldThresh = foldT > 0 ? (1.0 - foldT * 0.88) : 99; // high threshold = no fold
+
+        for (let ch = 0; ch < e.outputBuffer.numberOfChannels; ch++) {
+            const inp = e.inputBuffer.getChannelData(ch);
+            const out = e.outputBuffer.getChannelData(ch);
+            for (let i = 0; i < inp.length; i++) {
+                let s = inp[i];
+
+                // Wave fold applied before bit crush
+                if (p.wavefold >= 50) {
+                    let iter = 0;
+                    while (s > foldThresh && iter++ < 10) s = 2 * foldThresh - s;
+                    iter = 0;
+                    while (s < -foldThresh && iter++ < 10) s = -2 * foldThresh - s;
+                }
+
+                // Bit crush
+                if (p.audio >= 50) {
+                    s = step * Math.round(s / step);
+                }
+                out[i] = s;
+            }
+        }
+    };
+
+    // Stutter — captures and freezes a segment of audio
+    stutterNode = audioCtx.createScriptProcessor(4096, 2, 2);
+    const STUTTER_BUF_LEN = audioCtx.sampleRate * 2;
+    const stutterBuffer = [new Float32Array(STUTTER_BUF_LEN), new Float32Array(STUTTER_BUF_LEN)];
+    let stutterWritePos = 0;
+    stutterNode.onaudioprocess = function(e) {
+        for (let ch = 0; ch < e.outputBuffer.numberOfChannels; ch++) {
+            const inp = e.inputBuffer.getChannelData(ch);
+            const out = e.outputBuffer.getChannelData(ch);
+            for (let i = 0; i < inp.length; i++) {
+                stutterBuffer[ch][stutterWritePos % STUTTER_BUF_LEN] = inp[i];
+                if (p.stutter > 0) {
+                    const chunkLen = Math.floor(audioCtx.sampleRate * (p.stutter / 100) * 0.4) + 64;
+                    const readIdx = (stutterWritePos - chunkLen + STUTTER_BUF_LEN) % STUTTER_BUF_LEN;
+                    out[i] = stutterBuffer[ch][(readIdx + (i % chunkLen)) % STUTTER_BUF_LEN];
+                } else {
+                    out[i] = inp[i];
+                }
+                if (ch === e.outputBuffer.numberOfChannels - 1)
+                    stutterWritePos = (stutterWritePos + 1) % STUTTER_BUF_LEN;
+            }
+        }
+    };
+
+    // Ring modulator
+    ringModNode = audioCtx.createScriptProcessor(4096, 2, 2);
+    let ringPhase = 0;
+    ringModNode.onaudioprocess = function(e) {
+        const freq = 20 + p.ringmod * 4.8;
+        const phaseInc = (2 * Math.PI * freq) / audioCtx.sampleRate;
+        for (let ch = 0; ch < e.outputBuffer.numberOfChannels; ch++) {
+            const inp = e.inputBuffer.getChannelData(ch);
+            const out = e.outputBuffer.getChannelData(ch);
+            let ph = ringPhase;
+            for (let i = 0; i < inp.length; i++) {
+                const carrier = Math.sin(ph);
+                out[i] = p.ringmod > 0
+                    ? inp[i] * (1 - p.ringmod/100 * 0.9 + carrier * p.ringmod/100 * 0.9)
+                    : inp[i];
+                ph += phaseInc;
+                if (ph > 2 * Math.PI) ph -= 2 * Math.PI;
+            }
+            if (ch === 0) ringPhase = ph;
+        }
+    };
+
+    streamDest = audioCtx.createMediaStreamDestination();
+
+    source.connect(bitCrusherNode);
+    bitCrusherNode.connect(stutterNode);
+    stutterNode.connect(ringModNode);
+    ringModNode.connect(audioCtx.destination);
+    ringModNode.connect(streamDest);
+}
+
+function updateAudio() {
+    initAudio();
+}
+
+document.querySelectorAll('.fx').forEach(slider => {
+    slider.oninput = (e) => {
+        p[slider.id] = parseFloat(e.target.value);
+        updateLabel(slider);
+        if (['audio','wavefold','ringmod','stutter'].includes(slider.id)) updateAudio();
+    };
+});
+function updateLabel(slider) {
+    const label = document.getElementById('l-' + slider.id);
+    if (!label) return;
+    label.innerText = Math.floor(p[slider.id]);
+}
+
+// ─── GLITCH ENGINE ───────────────────────────────────────────────────────────
+function applyGlitchEffects() {
+    ctx.save();
+    drawVideo();
+    const speedFactor = currentSpeed;
+
+    // ── Canvas-level displacement (before pixel read) ──
+    if (p.tear > 0) {
+        for (let i = 0; i < (p.tear / 0.6) * speedFactor; i++) {
+            let y = Math.random() * canvas.height;
+            let h = Math.random() * p.tear * 3;
+            let ox = (Math.random() - 0.5) * p.tear * 55 * speedFactor;
+            ctx.drawImage(canvas, 0, y, canvas.width, h, ox, y, canvas.width, h);
+        }
+    }
+    if (p.mb > 0) {
+        const blocks = Math.floor(p.mb * 1.4 * speedFactor) + 4;
+        const bs = 16;
+        for (let n = 0; n < blocks; n++) {
+            const sx = Math.floor(Math.random() * (canvas.width - bs));
+            const sy = Math.floor(Math.random() * (canvas.height - bs));
+            const dx = sx + Math.floor((Math.random() - 0.5) * p.mb * 5 * speedFactor);
+            const dy = sy + Math.floor((Math.random() - 0.5) * p.mb * 4 * speedFactor);
+            ctx.drawImage(canvas, sx, sy, bs, bs, dx, dy, bs, bs);
+        }
+    }
+    if (p.dupe > 0) {
+        const cnt = Math.floor(p.dupe / 12 * speedFactor) + 1;
+        for (let c = 0; c < cnt; c++) {
+            const sw = canvas.width * (0.18 + Math.random() * 0.45);
+            const sh = canvas.height * (0.18 + Math.random() * 0.45);
+            const sx = Math.random() * (canvas.width - sw);
+            const sy = Math.random() * (canvas.height - sh);
+            const dx = sx + (Math.random() - 0.5) * p.dupe * 6 * speedFactor;
+            const dy = sy + (Math.random() - 0.5) * p.dupe * 4 * speedFactor;
+            ctx.globalAlpha = 0.55 + p.dupe / 280;
+            ctx.drawImage(canvas, sx, sy, sw, sh, dx, dy, sw, sh);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // ── Raw pixel buffer operations ──
+    let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let d = img.data;
+    const w4 = canvas.width * 4;
+    const totalBytes = d.length;
+
+    if (!moshBuf || moshBuf.length !== totalBytes) moshBuf = new Uint8ClampedArray(d);
+    if (!pFrame  || pFrame.length  !== totalBytes) pFrame  = new Uint8ClampedArray(d);
+    if (!echoBuf || echoBuf.length !== totalBytes) echoBuf = new Uint8ClampedArray(d);
+    if (!uafBuf  || uafBuf.length  !== totalBytes) uafBuf  = new Uint8ClampedArray(d);
+
+    // P-FRAME MOSH + VECTOR DRIFT
+    const mLimit = 255 - Math.floor(p.mosh);
+    const rgbOff = Math.floor(p.rgb * speedFactor) * 18;
+
+    for (let i = 0; i < totalBytes; i += 4) {
+        if (p.mosh > 0) {
+            if (Math.abs(d[i] - pFrame[i]) < mLimit) {
+                let move = (i + Math.floor(p.drift * 20 * speedFactor)) % totalBytes;
+                if (move + 2 < totalBytes) {
+                    d[i]   = moshBuf[move];
+                    d[i+1] = moshBuf[move+1];
+                    d[i+2] = moshBuf[move+2];
+                }
+            } else {
+                moshBuf[i]   = d[i];
+                moshBuf[i+1] = d[i+1];
+                moshBuf[i+2] = d[i+2];
+            }
+        }
+        if (rgbOff > 0 && i + rgbOff < totalBytes) {
+            d[i]   = d[i + rgbOff];
+            d[i+1] = d[(i + Math.floor(rgbOff * 0.7)) % totalBytes];
+        }
+        if (p.chroma > 0) {
+            const cs = Math.floor(p.chroma * 11 * speedFactor);
+            if (i + cs < totalBytes) {
+                d[i+1] = (d[i+1] + d[i + cs + 1]) >> 1;
+                d[i+2] = (d[i+2] + d[(i + cs * 2) % totalBytes + 2]) >> 1;
+            }
+        }
+        if (p.smear > 0 && Math.random() < p.smear / 340 * speedFactor) {
+            const len = Math.floor(p.smear / 2.5 * speedFactor);
+            for (let s = 1; s < len && i + s*4 < totalBytes; s++) {
+                let t = i + s*4;
+                d[t] = d[i]; d[t+1] = d[i+1]; d[t+2] = d[i+2];
+            }
+        }
+    }
+
+    // YUV DESYNC
+    if (p.yuv > 0) {
+        const px = (totalBytes/4)|0;
+        if (!chR_old || chR_old.length !== px) {
+            chR_old = new Uint8ClampedArray(px);
+            chB_old = new Uint8ClampedArray(px);
+        }
+        const mix = p.yuv / 100;
+        for (let i = 0, j = 0; i < totalBytes; i += 4, j++) {
+            const r = d[i], b = d[i+2];
+            d[i]   = (chR_old[j] * mix + r * (1 - mix)) | 0;
+            d[i+2] = (chB_old[j] * mix + b * (1 - mix)) | 0;
+            chR_old[j] = r;
+            chB_old[j] = b;
+        }
+    }
+
+    // DCT QUANTIZATION
+    if (p.dct > 0) {
+        const block = 8;
+        const q = Math.floor(p.dct/6)+2;
+        const prob = p.dct/130 * speedFactor;
+        for (let by = 0; by < canvas.height; by += block) {
+            for (let bx = 0; bx < canvas.width; bx += block) {
+                if (Math.random() > prob) continue;
+                const o0 = by * w4 + bx * 4;
+                let r=0,g=0,b=0,n=0;
+                const bh = Math.min(block, canvas.height - by);
+                const bw = Math.min(block, canvas.width  - bx);
+                for (let y2=0;y2<bh;y2+=2) for (let x2=0;x2<bw;x2+=2) {
+                    const o = o0 + y2*w4 + x2*4;
+                    r+=d[o]; g+=d[o+1]; b+=d[o+2]; n++;
+                }
+                r=(r/n)|0; g=(g/n)|0; b=(b/n)|0;
+                for (let y2=0;y2<bh;y2++) for (let x2=0;x2<bw;x2++) {
+                    const ring = (Math.sin(x2*1.3)*Math.cos(y2*1.3)*q*6)|0;
+                    const o = o0 + y2*w4 + x2*4;
+                    d[o]   = Math.max(0,Math.min(255, r+ring));
+                    d[o+1] = Math.max(0,Math.min(255, g+ring));
+                    d[o+2] = Math.max(0,Math.min(255, b+ring));
+                }
+            }
+        }
+    }
+
+    // ROW PREDICTOR
+    if (p.pred > 0) {
+        const chance = p.pred / 100 * speedFactor;
+        for (let row = 1; row < canvas.height; row++) {
+            if (Math.random() > chance * 0.18) continue;
+            const rowStart = row * w4;
+            const prevRow  = (row - 1) * w4;
+            const errShift = Math.floor((Math.random() - 0.5) * p.pred * 3);
+            for (let x = 0; x < canvas.width; x++) {
+                const o = rowStart + x*4;
+                const po = prevRow + x*4;
+                d[o]   = (d[o]   + (d[po]   >> 1) + errShift) & 0xFF;
+                d[o+1] = (d[o+1] + (d[po+1] >> 1))             & 0xFF;
+                d[o+2] = (d[o+2] + (d[po+2] >> 1) - errShift) & 0xFF;
+            }
+        }
+    }
+
+    // SLICE LOSS
+    if (p.slice > 0) {
+        const cuts = Math.floor(p.slice/8 * speedFactor)+1;
+        for (let c = 0; c < cuts; c++) {
+            if (Math.random() > 0.4 + p.slice/220) continue;
+            const y = Math.floor(Math.random() * canvas.height);
+            const h = 2 + Math.floor(Math.random() * (8 + p.slice/4));
+            const start = y * w4;
+            const end = Math.min(totalBytes, start + h * w4);
+            const shift = (Math.floor(Math.random() * 6) + 1);
+            for (let i = start; i < end - shift - 4; i++) d[i] = d[i + shift];
+        }
+    }
+
+    // HEX NOISE
+    if (p.hex > 0) {
+        const bands = Math.floor(p.hex/4 * speedFactor)+2;
+        for (let b = 0; b < bands; b++) {
+            const y = Math.floor(Math.random() * canvas.height);
+            const h = 1 + Math.floor(Math.random() * (3 + p.hex/7));
+            const start = y * w4;
+            const end = Math.min(totalBytes, start + h * w4);
+            for (let i = start; i < end; i += 4) {
+                d[i]=(Math.random()*256)|0; d[i+1]=(Math.random()*256)|0; d[i+2]=(Math.random()*256)|0;
+            }
+        }
+    }
+
+    // CHANNEL DROP
+    if (p.chand > 0) {
+        const zones = Math.floor(p.chand/10 * speedFactor)+1;
+        for (let z = 0; z < zones; z++) {
+            const y = Math.floor(Math.random() * canvas.height);
+            const h = Math.floor(15 + Math.random() * (40 + p.chand));
+            const ch = Math.floor(Math.random() * 3);
+            const fill = Math.random() < 0.5 ? 0 : 255;
+            const start = y * w4;
+            const end = Math.min(totalBytes, start + h * w4);
+            for (let i = start; i < end; i += 4) d[i+ch] = fill;
+        }
+    }
+
+    // JPEG BLOCK
+    if (p.jpg > 0) {
+        const block = Math.max(4, Math.floor(p.jpg/4)+4);
+        for (let by = 0; by < canvas.height; by += block) {
+            for (let bx = 0; bx < canvas.width; bx += block) {
+                if (Math.random() > p.jpg/100) continue;
+                const o0 = by * w4 + bx * 4;
+                let r=0,g=0,b=0,n=0;
+                const bh = Math.min(block, canvas.height-by);
+                const bw = Math.min(block, canvas.width-bx);
+                for (let y2=0;y2<bh;y2+=2) for (let x2=0;x2<bw;x2+=2) {
+                    const o = o0 + y2*w4 + x2*4;
+                    r+=d[o]; g+=d[o+1]; b+=d[o+2]; n++;
+                }
+                r=(r/n)|0; g=(g/n)|0; b=(b/n)|0;
+                for (let y2=0;y2<bh;y2++) for (let x2=0;x2<bw;x2++) {
+                    const o = o0 + y2*w4 + x2*4;
+                    d[o]=r; d[o+1]=g; d[o+2]=b;
+                }
+            }
+        }
+    }
+
+    // ── ORIGINAL BUFFER CORRUPTION ──────────────────────────────────────────
+
+    // ARITHMETIC RIGHT SHIFT — integer underflow via signed >>
+    if (p.bitshift > 0) {
+        const shifts = Math.max(1, Math.floor(p.bitshift / 14));
+        const prob = p.bitshift / 100 * speedFactor;
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() > prob) continue;
+            d[i]   = d[i]   >> shifts;
+            d[i+1] = d[i+1] >> shifts;
+            d[i+2] = d[i+2] >> shifts;
+        }
+    }
+
+    // ENDIAN SWAP — wrong byte order like reading big-endian pixels as little-endian
+    if (p.byteswap > 0) {
+        const prob = p.byteswap / 100 * speedFactor;
+        for (let row = 0; row < canvas.height; row++) {
+            if (Math.random() > prob * 0.4) continue;
+            const rowStart = row * w4;
+            const pat = Math.floor(Math.random() * 4);
+            for (let x = 0; x < canvas.width; x++) {
+                const o = rowStart + x*4;
+                const r=d[o],g=d[o+1],b=d[o+2],a=d[o+3];
+                if (pat===0) { d[o]=b; d[o+1]=g; d[o+2]=r; }
+                else if (pat===1) { d[o]=g; d[o+1]=r; d[o+2]=b; }
+                else if (pat===2) { d[o]=a; d[o+1]=r; d[o+2]=g; d[o+3]=b; }
+                else { d[o]=b; d[o+1]=a; d[o+2]=r; d[o+3]=g; }
+            }
+        }
+    }
+
+    // XOR CIPHER MASK — bad decryption key applied to raw RGBA bytes
+    if (p.xor > 0) {
+        const mask = Math.floor(p.xor) & 0xFF;
+        const prob = 0.15 * speedFactor;
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() > prob) continue;
+            d[i]   ^= mask;
+            d[i+1] ^= (mask >> 1) ^ 0x5A;
+            d[i+2] ^= (mask ^ 0xA5);
+        }
+    }
+
+    // UINT8 OVERFLOW WRAP — arithmetic wraps past 255 back to 0 like C uint8_t
+    if (p.overflow > 0) {
+        const addVal = Math.floor(p.overflow * 2.55 * speedFactor);
+        const prob = p.overflow / 100 * speedFactor * 0.6;
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() > prob) continue;
+            d[i]   = (d[i]   + addVal) & 0xFF;
+            d[i+2] = (d[i+2] - addVal + 256) & 0xFF;
+        }
+    }
+
+    // FSEEK MISALIGN — fseek() jumps to wrong file offset, reads displaced data block
+    if (p.seek > 0) {
+        const seekOff = Math.floor(p.seek / 100 * totalBytes * 0.5);
+        const numZones = Math.floor(p.seek / 10 * speedFactor) + 1;
+        for (let z = 0; z < numZones; z++) {
+            const start = Math.floor(Math.random() * (totalBytes - seekOff - 1024));
+            const len   = Math.floor(1024 + Math.random() * (p.seek * 80));
+            const src   = (start + seekOff) % totalBytes;
+            for (let i = 0; i < len && start+i < totalBytes && src+i < totalBytes; i++) {
+                d[start + i] = d[src + i];
+            }
+        }
+    }
+
+    // COLORMAP INDEX REMAP — indexed palette decoder assigns wrong channel to color entry
+    if (p.palette > 0) {
+        const levels = Math.max(2, Math.floor(8 - p.palette / 14));
+        const step = Math.floor(256 / levels);
+        const prob = p.palette / 100 * 0.7 * speedFactor;
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() > prob) continue;
+            const qi = Math.floor(d[i]   / step);
+            const qg = Math.floor(d[i+1] / step);
+            const qb = Math.floor(d[i+2] / step);
+            d[i]   = (qb * step) & 0xFF;
+            d[i+1] = (qi * step) & 0xFF;
+            d[i+2] = (qg * step) & 0xFF;
+        }
+    }
+
+    // DOUBLE BUFFER DESYNC — stale back-buffer bleeds into front-buffer at wrong offset
+    if (p.echo > 0) {
+        const mix = p.echo / 100;
+        const offset = Math.floor(p.echo / 100 * w4 * 12);
+        for (let i = 0; i < totalBytes; i += 4) {
+            const src = (i + offset) % totalBytes;
+            d[i]   = ((1 - mix) * d[i]   + mix * echoBuf[src])   | 0;
+            d[i+1] = ((1 - mix) * d[i+1] + mix * echoBuf[src+1]) | 0;
+            d[i+2] = ((1 - mix) * d[i+2] + mix * echoBuf[src+2]) | 0;
+        }
+    }
+    echoBuf.set(d);
+
+    // DEINTERLACE FIELD ERROR — wrong scan field used for deinterlace reconstruction
+    if (p.interlace > 0) {
+        const prob = p.interlace / 100 * speedFactor;
+        for (let row = 0; row < canvas.height; row += 2) {
+            if (Math.random() > prob) continue;
+            const y1 = row * w4;
+            const y2 = Math.min(totalBytes - w4, (row + Math.floor(Math.random() * (4 + p.interlace / 10))) * w4);
+            for (let x = 0; x < w4; x++) d[y1 + x] = d[y2 + x];
+        }
+    }
+
+    // ── NEW CODE-LEVEL BUFFER CORRUPTIONS ───────────────────────────────────
+
+    // MEMCPY STRIDE FAULT — src/dst stride mismatch causes rows to be read at wrong width
+    // Real-world: happens when image stride != width * bytes_per_pixel
+    if (p.stride > 0) {
+        const badStride = Math.floor(canvas.width * 4 * (1.0 + p.stride / 100 * 0.5)); // wrong stride
+        const prob = p.stride / 100 * 0.9 * speedFactor;
+        for (let row = 0; row < canvas.height; row++) {
+            if (Math.random() > prob * 0.3) continue;
+            const dstRow = row * w4;
+            // Read from "wrongly strided" src position
+            const srcRow = Math.floor(row * badStride) % Math.max(1, totalBytes - w4);
+            const len = Math.min(w4, totalBytes - srcRow, totalBytes - dstRow);
+            for (let x = 0; x < len; x++) d[dstRow + x] = d[srcRow + x];
+        }
+    }
+
+    // SCANLINE PITCH CORRUPT — pitch value wrong, causing rows to drift horizontally
+    // Real-world: GPU texture pitch misreported to CPU readback
+    if (p.pitch > 0) {
+        const drift = Math.floor(p.pitch * 3.2 * speedFactor); // horizontal drift in bytes per row
+        const prob = p.pitch / 100 * speedFactor;
+        const temp = new Uint8ClampedArray(totalBytes);
+        temp.set(d);
+        for (let row = 0; row < canvas.height; row++) {
+            if (Math.random() > prob * 0.5) continue;
+            const dstOff = row * w4;
+            // Wrong pitch: each row reads from slightly shifted source position
+            const srcOff = Math.max(0, Math.min(totalBytes - w4, row * w4 + (row * drift) % w4));
+            for (let x = 0; x < w4 && dstOff + x < totalBytes && srcOff + x < totalBytes; x++) {
+                d[dstOff + x] = temp[srcOff + x];
+            }
+        }
+    }
+
+    // NULL POINTER DEREFERENCE — reads from address 0x00000000: zeroed regions with boundary artifacts
+    // Real-world: decoder falls back to null ptr, reads zero-initialized memory for a region
+    if (p.nullptr > 0) {
+        const prob = p.nullptr / 100 * speedFactor;
+        const zones = Math.floor(p.nullptr / 10) + 1;
+        for (let z = 0; z < zones; z++) {
+            if (Math.random() > prob) continue;
+            const row = Math.floor(Math.random() * canvas.height);
+            const h   = Math.floor(2 + Math.random() * (p.nullptr / 5));
+            const start = row * w4;
+            const end   = Math.min(totalBytes, start + h * w4);
+            // Zero the region (what reading from address 0 gives you)
+            for (let i = start; i < end; i += 4) {
+                d[i] = 0; d[i+1] = 0; d[i+2] = 0;
+                // Leave a 1-pixel "boundary glitch" at transitions
+            }
+            // Corrupt the boundary rows with overflow artifacts
+            if (start >= 4 && start < totalBytes) {
+                for (let x = 0; x < Math.min(w4, 32); x++) {
+                    d[start - 4 + (x % 4)] ^= 0xFF;
+                }
+            }
+        }
+    }
+
+    // HEAP SPRAY OVERWRITE — attacker-controlled heap spray overwrites adjacent pixel data
+    // Real-world: buffer overrun from heap allocation fills memory with a repeated byte pattern
+    if (p.heap > 0) {
+        const prob = p.heap / 100 * speedFactor;
+        const sprayByte = Math.floor(p.heap * 2.55) & 0xFF; // spray value scales with slider
+        const zones = Math.floor(p.heap / 8) + 1;
+        for (let z = 0; z < zones; z++) {
+            if (Math.random() > prob * 0.5) continue;
+            const start = Math.floor(Math.random() * (totalBytes - 512));
+            const len   = Math.floor(64 + Math.random() * (p.heap * 12));
+            const channel = Math.floor(Math.random() * 3); // spray hits one channel at a time
+            for (let i = start; i < start + len && i < totalBytes; i += 4) {
+                d[i + channel] = (d[i + channel] ^ sprayByte) & 0xFF;
+            }
+        }
+    }
+
+    // USE-AFTER-FREE READ — reads stale freed buffer data instead of current frame
+    // Real-world: dangling pointer reads memory that was freed, gives old/corrupt data
+    if (p.uaf > 0) {
+        // uafBuf holds data from N frames ago (the "freed" allocation we're still reading)
+        const mix = p.uaf / 100;
+        const prob = p.uaf / 100 * 0.85 * speedFactor;
+        // Stale buffer is updated with delay: only partial update each frame
+        const updatePct = 1.0 - mix; // at max uaf, barely update the stale buf
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() < updatePct * 0.1) {
+                uafBuf[i]   = d[i];
+                uafBuf[i+1] = d[i+1];
+                uafBuf[i+2] = d[i+2];
+            }
+            if (Math.random() < prob * 0.4) {
+                // Read from stale allocation — dangling pointer dereference
+                d[i]   = uafBuf[i];
+                d[i+1] = uafBuf[i+1];
+                d[i+2] = uafBuf[i+2];
+            }
+        }
+    }
+
+    // BLIT RECT UNDERRUN — blitter reads source rect that extends past buffer end
+    // Real-world: SDL_BlitSurface or BitBlt with wrong src_rect clips into garbage memory
+    if (p.blit > 0) {
+        const prob = p.blit / 100 * speedFactor;
+        const zones = Math.floor(p.blit / 7) + 1;
+        for (let z = 0; z < zones; z++) {
+            if (Math.random() > prob) continue;
+            // A blit rect that starts near the end of a row, runs past it
+            const row = Math.floor(Math.random() * canvas.height);
+            const col = Math.floor(canvas.width * (0.6 + Math.random() * 0.35)); // starts past 60%
+            const blitW = Math.floor(canvas.width * 0.4 + p.blit * 2); // extends past right edge
+            const blitH = Math.floor(2 + Math.random() * (p.blit / 6));
+            for (let y = row; y < row + blitH && y < canvas.height; y++) {
+                for (let x = col; x < col + blitW; x++) {
+                    const dst = y * w4 + x * 4;
+                    // Source position wraps into next row (underrun behavior)
+                    const src = (y * w4 + (x % canvas.width) * 4 + Math.floor(p.blit * 8)) % totalBytes;
+                    if (dst + 3 < totalBytes && src + 3 < totalBytes) {
+                        d[dst]   = d[src];
+                        d[dst+1] = d[src+1];
+                        d[dst+2] = d[src+2];
+                    }
+                }
+            }
+        }
+    }
+
+    // ALPHA PREMULT ERROR — wrong premultiplied-alpha calculation, causes color channel blowout
+    // Real-world: compositing engine applies premult twice, or skips un-premult step
+    if (p.premult > 0) {
+        const prob = p.premult / 100 * speedFactor;
+        const scale = 1.0 + p.premult / 25; // 1.0→5.0 premult factor
+        for (let i = 0; i < totalBytes; i += 4) {
+            if (Math.random() > prob * 0.5) continue;
+            const alpha = d[i+3] / 255;
+            // Double-premultiply: multiply RGB by alpha again (what the bug does)
+            d[i]   = Math.min(255, (d[i]   * alpha * scale)) | 0;
+            d[i+1] = Math.min(255, (d[i+1] * alpha * scale)) | 0;
+            d[i+2] = Math.min(255, (d[i+2] * alpha * scale)) | 0;
+        }
+    }
+
+    // MMAP REMAP GLITCH — mremap() called on pixel buffer while it's being read
+    // Real-world: pages remapped mid-read, causing blocks to suddenly alias other memory regions
+    if (p.mmap > 0) {
+        const prob = p.mmap / 100 * speedFactor;
+        const pageSize = 4096; // simulate OS page size in bytes
+        const pages = Math.ceil(totalBytes / pageSize);
+        for (let pg = 0; pg < pages; pg++) {
+            if (Math.random() > prob * 0.25) continue;
+            const start = pg * pageSize;
+            // Page gets remapped to a different physical page — read from random offset
+            const remapSrc = Math.floor(Math.random() * (totalBytes - pageSize));
+            const len = Math.min(pageSize, totalBytes - start);
+            for (let i = 0; i < len; i++) {
+                d[start + i] = d[remapSrc + i];
+            }
+        }
+    }
+
+    // ── Finalize pixel data ──────────────────────────────────────────────────
+    pFrame.set(d);
+    ctx.putImageData(img, 0, 0);
+
+    // ── Post-pixel canvas compositing ────────────────────────────────────────
+    if (p.recur > 0) {
+        const intensity = p.recur / 110 * speedFactor;
+        const bands = Math.floor(p.recur / 6 * speedFactor) + 3;
+        const colors = ['#ff00ff','#39ff14','#00ffff','#ffff00','#ff3300'];
+        for (let i = 0; i < bands; i++) {
+            let y = Math.random() * canvas.height;
+            let h = 14 + Math.random() * (40 + p.recur);
+            let yEcho = (Math.random() - 0.5) * p.recur * 2.2 * speedFactor;
+            ctx.globalAlpha = 0.85;
+            ctx.drawImage(canvas, 0, y, canvas.width, h, 0, y + yEcho, canvas.width, h);
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = 0.35 + intensity * 0.45;
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(0, y + yEcho, canvas.width, h);
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1.0;
+        }
+    }
+    if (p.block > 0) {
+        const slices = Math.floor(p.block / 9 * speedFactor) + 3;
+        for (let j = 0; j < slices; j++) {
+            let x = Math.floor(Math.random() * canvas.width);
+            let w = 18 + Math.random() * (60 + p.block * 0.6 * speedFactor);
+            let yOffset = (Math.random() - 0.5) * p.block * 4.5 * speedFactor;
+            if (Math.abs(yOffset) < 4) continue;
+            ctx.drawImage(canvas, x, 0, w, canvas.height, x, yOffset, w, canvas.height);
+            ctx.fillStyle = Math.random() < 0.5 ? '#39ff14' : '#ff0033';
+            if (yOffset > 0) ctx.fillRect(x, 0, w, yOffset);
+            else ctx.fillRect(x, canvas.height + yOffset, w, -yOffset);
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x, yOffset > 0 ? yOffset : canvas.height + yOffset, w, 1);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+    ctx.restore();
+}
+function draw() {
+    applyGlitchEffects();
+    requestAnimationFrame(draw);
+}
+draw();
+document.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'r') document.getElementById('randomizer').click();
+    if (e.key.toLowerCase() === 's') document.getElementById('snapshot').click();
+    if (e.key.toLowerCase() === 'h') hideBtn.click();
+    if (e.key.toLowerCase() === 'e') document.getElementById('reset-fx').click();
+});
+</script>
+</body>
+</html>
+
+
